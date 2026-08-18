@@ -99,7 +99,7 @@
   <!-- 4. 第四步：防機器人驗證 -->
   <div id="view-captcha" class="hidden">
     <h2>🤖 防機器人驗證</h2>
-    <div class="subtitle">請回答問題以完成搶選：1+1=？</div>
+    <div class="subtitle">請回答問題以完成搶選：6+7=？</div>
     <input type="text" id="captcha-input" placeholder="請輸入答案..." autofocus />
     <button class="action-btn" onclick="verifyAnswer()">送出搶選</button>
   </div>
@@ -123,10 +123,10 @@
   // =========================================================================
   // ⏰【開搶時間設定】（第 129 行：依需要修改倒數時間）
   // =========================================================================
-  const TARGET_TIME = new Date("2026-08-19T02:37:00").getTime();
+  const TARGET_TIME = new Date("2026-08-19T02:49:00").getTime();
 
   // 🔗【試算表串接網址】（第 132 行：請貼上新的 Apps Script /exec 網址）
-  const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbykLq7rdS_2GUyNIc-ZcA4x-VqwG4W8uBVYE506I1vEAgyVouItpPKzt6SwTXzn2geg/exec";
+  const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzW3QhspLiEh-CU_APVYK7SzDzSIHeLqFIxX3VnY0WYohT-MW6zjtNZ3QaPUUnsxmak/exec";
 
   // 8 大運動項目與名額分配（共 18 位）
   const JOBS = [
@@ -260,7 +260,7 @@
 
   async function verifyAnswer() {
     const input = document.getElementById('captcha-input').value.trim();
-    if (input !== '2') {
+    if (input !== '13') {
       alert('驗證答案錯誤，請重新輸入！');
       document.getElementById('captcha-input').value = '';
       document.getElementById('captcha-input').focus();
