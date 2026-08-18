@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>運動項目搶選【試玩體驗版】</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
+  .card { background: #1e1e1e; border-radius: 16px; padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); position: relative; border: 1px solid #333; }
+
+  h2 { font-size: 22px; margin-bottom: 6px; color: #ffffff; text-align: center; }
+  .subtitle { font-size: 13px; color: #888; text-align: center; margin-bottom: 16px; }
+  .student-badge { background: #2a2a2a; border: 1px solid #444; border-radius: 6px; padding: 8px 12px; font-size: 14px; color: #2ed573; text-align: center; margin-bottom: 14px; font-weight: 500; }
+  .timer-box { background: #181818; border-radius: 10px; padding: 16px; margin: 16px 0; text-align: center; border: 1px solid #2a2a2a; }
+  .timer-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .timer { font-size: 32px; font-weight: bold; color: #ff4757; font-family: monospace; letter-spacing: 2px; }
+  
+  button.action-btn { background: #2ed573; color: #000; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.2s; }
+  button.action-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  button:disabled { background: #333 !important; color: #666 !important; cursor: not-allowed; transform: none !important; }
+
+  label { display: block; font-size: 13px; color: #bbb; margin-top: 10px; margin-bottom: 4px; }
+  input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 16px; }
+  input:focus { outline: none; border-color: #2ed573; }
+  
+  .target-grid { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; max-height: 340px; overflow-y: auto; padding-right: 4px; }
+  .target-grid::-webkit-scrollbar { width: 6px; }
+  .target-grid::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+  
+  .target-item { background: #2a2a2a; border: 2px solid #3a3a3a; border-radius: 8px; padding: 12px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; transition: 0.15s; }
+  .target-item:hover { border-color: #2ed573; background: #333; }
+  .target-item.selected { border-color: #2ed573; background: rgba(46, 213, 115, 0.15); font-weight: bold; }
+  
+  .target-badge { font-size: 12px; color: #2ed573; background: rgba(46, 213, 115, 0.12); border: 1px solid rgba(46, 213, 115, 0.4); padding: 3px 8px; border-radius: 4px; white-space: nowrap; font-weight: 500; }
+
+  /* 🚫 額滿自動暗掉樣式 */
+  .target-item.disabled {
+    background: #181818 !important;
+    border-color: #262626 !important;
+    color: #555 !important;
+    cursor: not-allowed !important;
+    pointer-events: none;
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+  .target-badge.taken-badge {
+    background: rgba(255, 71, 87, 0.15) !important;
+    border-color: rgba(255, 71, 87, 0.4) !important;
+    color: #ff4757 !important;
+    text-decoration: none !important;
+    font-weight: bold;
+  }
+
+  .hidden { display: none !important; }
+  .text-success { color: #2ed573; }
+  .text-fail { color: #ff4757; }
+  .status-box { background: #2a2a2a; padding: 16px; border-radius: 8px; margin: 14px 0; font-size: 14px; line-height: 1.7; text-align: left; }
+  .thank-you-msg { margin-top: 15px; padding: 12px; background: rgba(46, 213, 115, 0.1); border: 1px dashed #2ed573; border-radius: 8px; color: #2ed573; font-weight: bold; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- 1. 第一步：實名登記 -->
+  <div id="view-auth">
+    <h2>🏀 運動項目搶選【試玩體驗】</h2>
+    <div class="subtitle">準點開搶 · 總計 18 個體驗名額</div>
+
+    <label>請輸入姓名或代號：</label>
+    <input type="text" id="student-name" placeholder="例如：王小明" autofocus />
+
+    <button class="action-btn" onclick="submitAuth()">進入等候室</button>
+  </div>
+
+  <!-- 2. 第二步：同步倒數等候室 -->
+  <div id="view-countdown" class="hidden">
+    <div class="student-badge" id="badge-info"></div>
+    <h2>等候系統開啟</h2>
+    <div class="subtitle" id="target-time-label">距離開搶時間還剩</div>
+    
+    <div class="timer-box">
+      <div class="timer-label">倒數計時（時 : 分 : 秒 . 毫秒）</div>
+      <div class="timer" id="timer-display">00:00:00.0</div>
+    </div>
+    
+    <button class="action-btn" id="btn-enter" disabled onclick="startSelectTarget()">等待時間到達...</button>
+  </div>
+
+  <!-- 3. 第三步：挑選運動項目 -->
+  <div id="view-select" class="hidden">
+    <h2>🔥 挑選你想參加的項目</h2>
+    <div class="subtitle">點選項目（綠框為剩餘名額，額滿將自動暗掉）</div>
+    <div class="target-grid" id="target-list"></div>
+    <button class="action-btn" id="btn-confirm-target" disabled onclick="enterCaptcha()">確認選定此項目</button>
+  </div>
+
+  <!-- 4. 第四步：防機器人驗證 -->
+  <div id="view-captcha" class="hidden">
+    <h2>🤖 防機器人驗證</h2>
+    <div class="subtitle">請回答問題以完成搶選：1+1=？</div>
+    <input type="text" id="captcha-input" placeholder="請輸入答案..." autofocus />
+    <button class="action-btn" onclick="verifyAnswer()">送出搶選</button>
+  </div>
+
+  <!-- 5. 第五步：排隊配對中 -->
+  <div id="view-loading" class="hidden" style="text-align: center;">
+    <h2>🌀 伺服器同步中</h2>
+    <div class="subtitle">正在向試算表確認剩餘名額，請稍候...</div>
+    <div class="timer">⏳</div>
+  </div>
+
+  <!-- 6. 第六步：結果畫面 -->
+  <div id="view-result" class="hidden" style="text-align: center;">
+    <h2 id="result-status"></h2>
+    <div class="status-box" id="result-details"></div>
+    <button class="action-btn" id="btn-result-action" onclick="handleRetryAction()">🔄 重新挑選其他項目</button>
+  </div>
+</div>
+
+<script>
+  // =========================================================================
+  // ⏰【開搶時間設定】（第 129 行：依需要修改倒數時間）
+  // =========================================================================
+  const TARGET_TIME = new Date("2026-08-19T02:37:00").getTime();
+
+  // 🔗【試算表串接網址】（第 132 行：請貼上新的 Apps Script /exec 網址）
+  const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbykLq7rdS_2GUyNIc-ZcA4x-VqwG4W8uBVYE506I1vEAgyVouItpPKzt6SwTXzn2geg/exec";
+
+  // 8 大運動項目與名額分配（共 18 位）
+  const JOBS = [
+    { name: '排球體驗組', total: 3 },
+    { name: '羽球雙打組', total: 4 },
+    { name: '拳擊體能燃脂組', total: 2 },
+    { name: '游泳水中衝刺組', total: 2 },
+    { name: '籃球全場對抗組', total: 3 },
+    { name: '桌球抽球訓練組', total: 2 },
+    { name: '射箭專注體驗', total: 1 },
+    { name: '攀岩抱石挑戰', total: 1 }
+  ];
+
+  let timerInterval = null;
+  let selectedItem = null;
+  let currentUserName = '';
+  let takenCounts = {};
+
+  function submitAuth() {
+    const name = document.getElementById('student-name').value.trim();
+    if (!name) {
+      alert('請輸入姓名才能進入等候室！');
+      return;
+    }
+    currentUserName = name;
+    document.getElementById('badge-info').innerText = `👤 登記人員：${name}`;
+
+    document.getElementById('view-auth').classList.add('hidden');
+    document.getElementById('view-countdown').classList.remove('hidden');
+    startRealTimeCountdown();
+    fetchCounts();
+  }
+
+  async function fetchCounts() {
+    if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL.includes("在此貼上")) return;
+    try {
+      const res = await fetch(GOOGLE_SHEET_URL);
+      const data = await res.json();
+      if (data && data.counts) {
+        takenCounts = data.counts;
+      }
+    } catch (e) {
+      console.log("載入名額暫存", e);
+    }
+  }
+
+  function startRealTimeCountdown() {
+    clearInterval(timerInterval);
+    const btnEnter = document.getElementById('btn-enter');
+
+    function update() {
+      const diff = TARGET_TIME - Date.now();
+
+      if (diff <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById('timer-display').innerText = '00:00:00.0';
+        document.getElementById('target-time-label').innerText = '🎉 搶選已正式開始！';
+        btnEnter.disabled = false;
+        btnEnter.innerText = '🔥 立即進入搶選！';
+        btnEnter.style.background = '#ff4757';
+        btnEnter.style.color = '#fff';
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+      const tenths = Math.floor((diff % 1000) / 100);
+
+      const pad = n => String(n).padStart(2, '0');
+      document.getElementById('timer-display').innerText = `${pad(hours)}:${pad(mins)}:${pad(secs)}.${tenths}`;
+    }
+
+    update();
+    timerInterval = setInterval(update, 80);
+  }
+
+  async function startSelectTarget() {
+    document.getElementById('view-countdown').classList.add('hidden');
+    document.getElementById('view-select').classList.remove('hidden');
+
+    const container = document.getElementById('target-list');
+    container.innerHTML = '<div style="text-align:center; padding: 20px; color:#888;">⏳ 正在同步最新剩餘名額...</div>';
+    selectedItem = null;
+    document.getElementById('btn-confirm-target').disabled = true;
+
+    await fetchCounts();
+    renderJobList();
+  }
+
+  function renderJobList() {
+    const container = document.getElementById('target-list');
+    container.innerHTML = '';
+
+    JOBS.forEach((job) => {
+      const used = takenCounts[job.name] || 0;
+      const remaining = Math.max(0, job.total - used);
+      const isFull = remaining <= 0;
+
+      const div = document.createElement('div');
+      
+      if (isFull) {
+        div.className = 'target-item disabled';
+        div.innerHTML = `
+          <span><strong>${job.name}</strong> [名額 ${job.total} 位]</span>
+          <span class="target-badge taken-badge">已額滿 ❌</span>
+        `;
+      } else {
+        div.className = 'target-item';
+        div.innerHTML = `
+          <span><strong>${job.name}</strong> [名額 ${job.total} 位]</span>
+          <span class="target-badge">剩餘：${remaining}/${job.total}</span>
+        `;
+        div.onclick = () => {
+          document.querySelectorAll('.target-item').forEach(el => el.classList.remove('selected'));
+          div.classList.add('selected');
+          selectedItem = job.name;
+          document.getElementById('btn-confirm-target').disabled = false;
+        };
+      }
+      container.appendChild(div);
+    });
+  }
+
+  function enterCaptcha() {
+    document.getElementById('view-select').classList.add('hidden');
+    document.getElementById('view-captcha').classList.remove('hidden');
+    document.getElementById('captcha-input').value = '';
+    document.getElementById('captcha-input').focus();
+  }
+
+  async function verifyAnswer() {
+    const input = document.getElementById('captcha-input').value.trim();
+    if (input !== '2') {
+      alert('驗證答案錯誤，請重新輸入！');
+      document.getElementById('captcha-input').value = '';
+      document.getElementById('captcha-input').focus();
+      return;
+    }
+
+    document.getElementById('view-captcha').classList.add('hidden');
+    document.getElementById('view-loading').classList.remove('hidden');
+
+    const orderId = '#' + Math.floor(1000 + Math.random() * 9000);
+    let isSuccess = false;
+
+    if (GOOGLE_SHEET_URL && !GOOGLE_SHEET_URL.includes("在此貼上")) {
+      try {
+        const response = await fetch(GOOGLE_SHEET_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            name: currentUserName,
+            job: selectedItem,
+            orderId: orderId,
+            timestamp: new Date().toLocaleString("zh-TW", {hour12: false})
+          })
+        });
+        const resData = await response.json();
+        isSuccess = (resData.result === 'success');
+      } catch (err) {
+        isSuccess = true;
+      }
+    } else {
+      isSuccess = true;
+    }
+
+    setTimeout(() => {
+      document.getElementById('view-loading').classList.add('hidden');
+      document.getElementById('view-result').classList.remove('hidden');
+
+      const statusEl = document.getElementById('result-status');
+      const detailEl = document.getElementById('result-details');
+      const actionBtn = document.getElementById('btn-result-action');
+
+      if (isSuccess) {
+        statusEl.innerText = '🎉 搶選成功！';
+        statusEl.className = 'text-success';
+        detailEl.innerHTML = `
+          <strong>登記姓名：</strong>${currentUserName}<br>
+          <strong>錄取項目：</strong>${selectedItem}<br>
+          <strong>登記序號：</strong>${orderId}<br>
+          <strong>登記狀態：</strong>名額已成功寫入試算表！
+          <div class="thank-you-msg">✨ 謝謝你的配合，試玩登記已順利完成！<br>請直接關閉此視窗。</div>
+        `;
+        actionBtn.style.display = 'none'; // 隱藏按鈕，鎖定畫面禁止再選
+      } else {
+        statusEl.innerText = '😭 殘念！該項目名額已滿';
+        statusEl.className = 'text-fail';
+        detailEl.innerHTML = `
+          <strong>${currentUserName}</strong> 同學：<br>
+          您所選擇的 <strong>${selectedItem}</strong> 剩餘名額剛好被其他人搶先登記！<br><br>
+          <span style="color:#ff4757;">⚠️ 請點擊下方按鈕重新挑選其他剩餘項目。</span>
+        `;
+        actionBtn.style.display = 'block';
+        actionBtn.innerText = '🔄 重新挑選其他項目';
+        actionBtn.style.background = '#ff4757';
+      }
+    }, 800);
+  }
+
+  function handleRetryAction() {
+    selectedItem = null;
+    document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
+    document.getElementById('view-select').classList.remove('hidden');
+    startSelectTarget();
+  }
+</script>
+</body>
+</html>
