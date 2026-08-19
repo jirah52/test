@@ -34,7 +34,6 @@
   
   .target-badge { font-size: 12px; color: #2ed573; background: rgba(46, 213, 115, 0.12); border: 1px solid rgba(46, 213, 115, 0.4); padding: 3px 8px; border-radius: 4px; white-space: nowrap; font-weight: 500; }
 
-  /* 🚫 額滿自動暗掉樣式 */
   .target-item.disabled {
     background: #181818 !important;
     border-color: #262626 !important;
@@ -62,7 +61,6 @@
 <body>
 
 <div class="card">
-
   <!-- 1. 第一步：實名登記 -->
   <div id="view-auth">
     <h2>🏀 運動項目搶選【試玩體驗】</h2>
@@ -99,14 +97,14 @@
   <!-- 4. 第四步：防機器人驗證 -->
   <div id="view-captcha" class="hidden">
     <h2>🤖 防機器人驗證</h2>
-    <div class="subtitle">請回答問題以完成搶選：6+7=？</div>
+    <div class="subtitle">請回答問題以完成搶選：1+1=？</div>
     <input type="text" id="captcha-input" placeholder="請輸入答案..." autofocus />
     <button class="action-btn" onclick="verifyAnswer()">送出搶選</button>
   </div>
 
-  <!-- 5. 第五步：排隊配對中 -->
+  <!-- 5. 第五步：排隊同步中 -->
   <div id="view-loading" class="hidden" style="text-align: center;">
-    <h2>🌀 伺服器同步中</h2>
+    <h2>🌀 伺服器即時同步中</h2>
     <div class="subtitle">正在向試算表確認剩餘名額，請稍候...</div>
     <div class="timer">⏳</div>
   </div>
@@ -121,14 +119,13 @@
 
 <script>
   // =========================================================================
-  // ⏰【開搶時間設定】（第 129 行：依需要修改倒數時間）
+  // ⏰【開搶時間設定】（第 127 行）
   // =========================================================================
-  const TARGET_TIME = new Date("2026-08-19T02:49:00").getTime();
+  const TARGET_TIME = new Date("2026-08-19T10:10:00").getTime();
 
-  // 🔗【試算表串接網址】（第 132 行：請貼上新的 Apps Script /exec 網址）
+  // 🔗【試算表串接網址】（第 130 行：請換成試玩版試算表的 Apps Script /exec 網址）
   const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzW3QhspLiEh-CU_APVYK7SzDzSIHeLqFIxX3VnY0WYohT-MW6zjtNZ3QaPUUnsxmak/exec";
 
-  // 8 大運動項目與名額分配（共 18 位）
   const JOBS = [
     { name: '排球體驗組', total: 3 },
     { name: '羽球雙打組', total: 4 },
@@ -260,7 +257,7 @@
 
   async function verifyAnswer() {
     const input = document.getElementById('captcha-input').value.trim();
-    if (input !== '13') {
+    if (input !== '2') {
       alert('驗證答案錯誤，請重新輸入！');
       document.getElementById('captcha-input').value = '';
       document.getElementById('captcha-input').focus();
@@ -271,12 +268,13 @@
     document.getElementById('view-loading').classList.remove('hidden');
 
     const orderId = '#' + Math.floor(1000 + Math.random() * 9000);
-    let isSuccess = false;
+    let finalResult = 'full';
 
     if (GOOGLE_SHEET_URL && !GOOGLE_SHEET_URL.includes("在此貼上")) {
       try {
         const response = await fetch(GOOGLE_SHEET_URL, {
           method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
             name: currentUserName,
             job: selectedItem,
@@ -285,46 +283,45 @@
           })
         });
         const resData = await response.json();
-        isSuccess = (resData.result === 'success');
+        finalResult = resData.result;
       } catch (err) {
-        isSuccess = true;
+        console.error("提交錯誤:", err);
+        finalResult = 'full';
       }
     } else {
-      isSuccess = true;
+      finalResult = 'success';
     }
 
-    setTimeout(() => {
-      document.getElementById('view-loading').classList.add('hidden');
-      document.getElementById('view-result').classList.remove('hidden');
+    document.getElementById('view-loading').classList.add('hidden');
+    document.getElementById('view-result').classList.remove('hidden');
 
-      const statusEl = document.getElementById('result-status');
-      const detailEl = document.getElementById('result-details');
-      const actionBtn = document.getElementById('btn-result-action');
+    const statusEl = document.getElementById('result-status');
+    const detailEl = document.getElementById('result-details');
+    const actionBtn = document.getElementById('btn-result-action');
 
-      if (isSuccess) {
-        statusEl.innerText = '🎉 搶選成功！';
-        statusEl.className = 'text-success';
-        detailEl.innerHTML = `
-          <strong>登記姓名：</strong>${currentUserName}<br>
-          <strong>錄取項目：</strong>${selectedItem}<br>
-          <strong>登記序號：</strong>${orderId}<br>
-          <strong>登記狀態：</strong>名額已成功寫入試算表！
-          <div class="thank-you-msg">✨ 謝謝你的配合，試玩登記已順利完成！<br>請直接關閉此視窗。</div>
-        `;
-        actionBtn.style.display = 'none'; // 隱藏按鈕，鎖定畫面禁止再選
-      } else {
-        statusEl.innerText = '😭 殘念！該項目名額已滿';
-        statusEl.className = 'text-fail';
-        detailEl.innerHTML = `
-          <strong>${currentUserName}</strong> 同學：<br>
-          您所選擇的 <strong>${selectedItem}</strong> 剩餘名額剛好被其他人搶先登記！<br><br>
-          <span style="color:#ff4757;">⚠️ 請點擊下方按鈕重新挑選其他剩餘項目。</span>
-        `;
-        actionBtn.style.display = 'block';
-        actionBtn.innerText = '🔄 重新挑選其他項目';
-        actionBtn.style.background = '#ff4757';
-      }
-    }, 800);
+    if (finalResult === 'success') {
+      statusEl.innerText = '🎉 搶選成功！';
+      statusEl.className = 'text-success';
+      detailEl.innerHTML = `
+        <strong>登記姓名：</strong>${currentUserName}<br>
+        <strong>錄取項目：</strong>${selectedItem}<br>
+        <strong>登記序號：</strong>${orderId}<br>
+        <strong>登記狀態：</strong>名額已成功寫入試算表！
+        <div class="thank-you-msg">✨ 謝謝你的配合，試玩登記已順利完成！<br>請直接關閉此視窗。</div>
+      `;
+      actionBtn.style.display = 'none';
+    } else {
+      statusEl.innerText = '😭 殘念！該項目已被搶先登記';
+      statusEl.className = 'text-fail';
+      detailEl.innerHTML = `
+        <strong>${currentUserName}</strong> 同學：<br>
+        您所選擇的 <strong>${selectedItem}</strong> 剩餘名額剛好被其他人搶先一步登記完畢！<br><br>
+        <span style="color:#ff4757;">⚠️ 請點擊下方按鈕重新挑選其他尚有名額的項目。</span>
+      `;
+      actionBtn.style.display = 'block';
+      actionBtn.innerText = '🔄 重新挑選其他項目';
+      actionBtn.style.background = '#ff4757';
+    }
   }
 
   function handleRetryAction() {
