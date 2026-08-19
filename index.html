@@ -94,10 +94,10 @@
     <button class="action-btn" id="btn-confirm-target" disabled onclick="enterCaptcha()">確認選定此項目</button>
   </div>
 
-  <!-- 4. 第四步：防機器人驗證 -->
+  <!-- 4. 第四步：防機器人驗證（已改為 6+7） -->
   <div id="view-captcha" class="hidden">
     <h2>🤖 防機器人驗證</h2>
-    <div class="subtitle">請回答問題以完成搶選：1+1=？</div>
+    <div class="subtitle">請回答問題以完成搶選：6+7=？</div>
     <input type="text" id="captcha-input" placeholder="請輸入答案..." autofocus />
     <button class="action-btn" onclick="verifyAnswer()">送出搶選</button>
   </div>
@@ -121,10 +121,10 @@
   // =========================================================================
   // ⏰【開搶時間設定】（第 127 行）
   // =========================================================================
-  const TARGET_TIME = new Date("2026-08-19T11:54:00").getTime();
+  const TARGET_TIME = new Date("2026-08-19T12:00:00").getTime();
 
-  // 🔗【試算表串接網址】（第 130 行：請換成試玩版試算表的 Apps Script /exec 網址）
-  const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzW3QhspLiEh-CU_APVYK7SzDzSIHeLqFIxX3VnY0WYohT-MW6zjtNZ3QaPUUnsxmak/exec";
+  // 🔗【試算表串接網址】（第 130 行：請填入試玩版試算表的 Apps Script /exec 網址）
+  const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyP87p_U82ZXFvbhSuWjpmUOGBgi6qa8-3M73uFIR3kLGHM4J1nnTCRrsG6PYYJaAWJ/exec";
 
   const JOBS = [
     { name: '排球體驗組', total: 3 },
@@ -257,7 +257,8 @@
 
   async function verifyAnswer() {
     const input = document.getElementById('captcha-input').value.trim();
-    if (input !== '2') {
+    // 驗證答案判定（6+7 = 13）
+    if (input !== '13') {
       alert('驗證答案錯誤，請重新輸入！');
       document.getElementById('captcha-input').value = '';
       document.getElementById('captcha-input').focus();
